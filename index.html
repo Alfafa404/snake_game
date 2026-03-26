@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>極速 64x64 貪食蛇</title>
+    <style>
+        body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #222; color: white; font-family: sans-serif; }
+        canvas { border: 2px solid #555; background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .stats { margin-bottom: 10px; font-size: 1.2rem; }
+    </style>
+</head>
+<body>
+    <div class="stats">分數: <span id="score">0</span> | 速度: <span id="speed">1</span></div>
+    <canvas id="gameCanvas" width="640" height="640"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const speedElement = document.getElementById('speed');
+
+        const gridSize = 64;
+        const tileSize = canvas.width / gridSize; // 10px
+
+        let snake = [{x: 32, y: 32}];
+        let food = {x: 10, y: 10};
+        let dx = 1, dy = 0;
+        let score = 0;
+        let gameSpeed = 100;
+        let startTime = Date.now();
+        let gameOver = false;
+        let nextDx = 1, nextDy = 0;
+
+        function main() {
+            if (gameOver) return;
+            setTimeout(function onTick() {
+                clearCanvas();
+                drawFood();
+                advanceSnake();
+                drawSnake();
+                main();
+            }, gameSpeed);
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function drawSnake() {
+            ctx.fillStyle = "#4CAF50";
+            snake.forEach((part, index) => {
+                if (index === 0) ctx.fillStyle = "#8BC34A"; // 頭部顏色
+                else ctx.fillStyle = "#4CAF50";
+                ctx.fillRect(part.x * tileSize, part.y * tileSize, tileSize - 1, tileSize - 1);
+            });
+        }
+
+        function advanceSnake() {
+            dx = nextDx; dy = nextDy;
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+            // 撞牆或撞到自己
+            if (head.x < 0 || head.x >= gridSize || head.y < 0 || head.y >= gridSize || snake.some(p => p.x === head.x && p.y === head.y)) {
+                endGame();
+                return;
+            }
+
+            snake.unshift(head);
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                scoreElement.innerHTML = score;
+                if (score % 5 === 0) {
+                    gameSpeed = Math.max(30, gameSpeed - 10);
+                    speedElement.innerHTML = (100 / gameSpeed).toFixed(1);
+                }
+                createFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function createFood() {
+            food.x = Math.floor(Math.random() * gridSize);
+            food.y = Math.floor(Math.random() * gridSize);
+            if (snake.some(p => p.x === food.x && p.y === food.y)) createFood();
+        }
+
+        function drawFood() {
+            ctx.fillStyle = "#FF5252";
+            ctx.fillRect(food.x * tileSize, food.y * tileSize, tileSize - 1, tileSize - 1);
+        }
+
+        function endGame() {
+            gameOver = true;
+            const timePlayed = Math.floor((Date.now() - startTime) / 1000);
+            alert(`遊戲結束！\n生存時間：${timePlayed} 秒\n吃到食物數量：${score}`);
+            location.reload();
+        }
+
+        window.addEventListener('keydown', e => {
+            const key = e.key.toLowerCase();
+            if ((key === 'w' || key === 'arrowup') && dy === 0) { nextDx = 0; nextDy = -1; }
+            if ((key === 's' || key === 'arrowdown') && dy === 0) { nextDx = 0; nextDy = 1; }
+            if ((key === 'a' || key === 'arrowleft') && dx === 0) { nextDx = -1; nextDy = 0; }
+            if ((key === 'd' || key === 'arrowright') && dx === 0) { nextDx = 1; nextDy = 0; }
+        });
+
+        createFood();
+        main();
+    </script>
+</body>
+</html>
